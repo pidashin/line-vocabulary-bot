@@ -1,5 +1,6 @@
 const express = require('express');
 const line = require('@line/bot-sdk');
+const aiService = require('./services/aiService');
 require('dotenv').config();
 
 const app = express();
@@ -101,17 +102,49 @@ app.post('/webhook', async (req, res) => {
           continue;
         }
 
-        // Send a simple echo response
-        const responseText = `🤖 Bot received your message: "${messageText}"\n\nThis is a test response from your LINE Vocabulary Bot!`;
-
         try {
+          // Send processing message
           await client.replyMessage(replyToken, {
             type: 'text',
-            text: responseText
+            text: '🤖 Processing your message with AI...'
           });
-          console.log('✅ Response sent successfully');
-        } catch (replyError) {
-          console.error('❌ Failed to send reply:', replyError);
+
+          // Extract vocabulary using AI
+          const vocabularyData = await aiService.extractVocabulary(messageText);
+          
+          if (!vocabularyData || !vocabularyData.words || vocabularyData.words.length === 0) {
+            await client.replyMessage(replyToken, {
+              type: 'text',
+              text: '❌ No vocabulary words found in your message. Please try again with a message containing English words.'
+            });
+            continue;
+          }
+
+          // Format vocabulary list
+          const wordCount = vocabularyData.words.length;
+          let vocabularyText = `📚 Found ${wordCount} vocabulary words:\n\n`;
+          
+          vocabularyData.words.forEach((word, index) => {
+            vocabularyText += `${index + 1}. ${word.enUS} → ${word.zhTW}\n`;
+          });
+          
+          vocabularyText += `\n✅ Vocabulary extraction complete!`;
+
+          // Send vocabulary response
+          await client.replyMessage(replyToken, {
+            type: 'text',
+            text: vocabularyText
+          });
+          
+          console.log('✅ Vocabulary response sent successfully');
+        } catch (error) {
+          console.error('❌ Failed to process vocabulary:', error);
+          
+          // Send error response
+          await client.replyMessage(replyToken, {
+            type: 'text',
+            text: '❌ Sorry, something went wrong while processing your message. Please try again later.'
+          });
         }
       } else {
         console.log(`ℹ️  Ignoring event type: ${event.type}`);
