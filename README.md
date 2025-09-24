@@ -4,20 +4,19 @@ A LINE bot that extracts vocabulary words from teacher messages using AI and tra
 
 ## Features
 
-- 🤖 **AI-First Parsing**: Uses OpenAI GPT to extract vocabulary words from messages
+- 🤖 **AI-First Parsing**: Uses Hugging Face AI to extract vocabulary words from messages
 - 🌐 **Automatic Translation**: Translates English words to Traditional Chinese (Taiwan)
-- ✅ **User Confirmation**: Interactive confirmation flow with buttons
 - 📱 **LINE Integration**: Full LINE Bot SDK integration with webhook handling
-- 🔗 **App Integration**: Uploads confirmed vocabulary to external app API
+- 🎯 **WordBridge Integration**: Automatically adds extracted vocabulary to WordBridge collection
 
 ## Flow
 
 1. **Teacher sends message** → Bot receives webhook
-2. **AI Processing** → Bot sends message text to OpenAI
+2. **AI Processing** → Bot sends message text to Hugging Face AI
 3. **Vocabulary Extraction** → AI returns structured JSON with word pairs
-4. **User Confirmation** → Bot shows formatted list with confirm/cancel buttons
-5. **Upload to App** → On confirmation, vocabulary is uploaded to app API
-6. **Success Feedback** → Bot confirms successful upload
+4. **Display Results** → Bot shows formatted vocabulary list to user
+5. **WordBridge Integration** → Automatically adds words to WordBridge collection
+6. **Success Feedback** → Bot confirms successful addition to WordBridge
 
 ## Installation
 
@@ -48,12 +47,11 @@ Create a `.env` file with the following variables:
 LINE_CHANNEL_ACCESS_TOKEN=your_line_channel_access_token_here
 LINE_CHANNEL_SECRET=your_line_channel_secret_here
 
-# AI Service Configuration (OpenAI)
-OPENAI_API_KEY=your_openai_api_key_here
+# AI Service Configuration (Hugging Face)
+HUGGINGFACE_API_KEY=your_huggingface_api_key_here
 
-# App API Configuration
-APP_API_BASE_URL=https://your-app-api.com
-APP_API_KEY=your_app_api_key_here
+# WordBridge API Configuration
+WORDBRIDGE_API_URL=https://pidashinnas.myds.me/projects/wordbridge/api/graphql
 
 # Server Configuration
 PORT=3000
@@ -67,11 +65,11 @@ NODE_ENV=development
 3. Choose "Messaging API" as the channel type
 4. Get your Channel Access Token and Channel Secret from the Basic settings
 
-### Getting OpenAI API Key
+### Getting Hugging Face API Key
 
-1. Go to [OpenAI Platform](https://platform.openai.com/)
-2. Create an account and get your API key
-3. Add billing information to use the API
+1. Go to [Hugging Face](https://huggingface.co/)
+2. Create an account and go to Settings > Access Tokens
+3. Create a new token with read access
 
 ## Usage
 
@@ -114,32 +112,30 @@ The AI service returns vocabulary data in this format:
 }
 ```
 
-## App API Integration
+## WordBridge Integration
 
-The bot uploads vocabulary to your app API with this payload:
+The bot automatically adds extracted vocabulary to your WordBridge collection using GraphQL mutations. The integration includes:
 
-```json
-{
-  "words": [
-    { "enUS": "word", "zhTW": "翻譯" }
-  ],
-  "source": "line_bot",
-  "timestamp": "2024-01-01T00:00:00.000Z",
-  "metadata": {
-    "total_words": 1,
-    "extracted_at": "2024-01-01T00:00:00.000Z"
-  }
-}
+- **Automatic Addition**: Words are added immediately after extraction
+- **GraphQL Support**: Uses your WordBridge GraphQL API endpoint
+- **Error Handling**: Graceful fallback if WordBridge is unavailable
+- **Testing Mode**: Mock responses when API is not configured
+
+### WordBridge Configuration
+
+Set up your WordBridge API in the `.env` file:
+
+```env
+WORDBRIDGE_API_URL=https://pidashinnas.myds.me/projects/wordbridge/api/graphql
 ```
 
-Expected app API endpoint: `POST /api/vocabulary/upload`
 
 ## Testing
 
 The bot includes fallback mechanisms for testing:
 
-- If OpenAI API is not configured, it uses a simple word extraction fallback
-- If app API is not configured, it returns mock success responses
+- If Hugging Face API is not configured, it uses a simple word extraction fallback
+- If WordBridge API is not configured, it operates in testing mode with mock responses
 - All services include comprehensive error handling
 
 ## Project Structure
@@ -150,8 +146,8 @@ src/
 │   ├── lineBotHandler.js    # Main bot logic and event handling
 │   └── webhookHandler.js    # LINE webhook processing
 ├── services/
-│   ├── aiService.js         # OpenAI integration for vocabulary extraction
-│   └── appService.js        # External app API integration
+│   ├── aiService.js         # Hugging Face AI integration for vocabulary extraction
+│   └── wordBridgeService.js # WordBridge GraphQL API integration
 ├── utils/
 │   └── messageFormatter.js  # LINE message formatting utilities
 └── index.js                 # Main application entry point

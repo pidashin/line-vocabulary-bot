@@ -1,6 +1,7 @@
 const express = require('express');
 const line = require('@line/bot-sdk');
 const aiService = require('./services/aiService');
+const wordBridgeService = require('./services/wordBridgeService');
 require('dotenv').config();
 
 const app = express();
@@ -102,6 +103,8 @@ app.post('/webhook', async (req, res) => {
           continue;
         }
 
+        let hasReplied = false;
+        
         try {
           // Extract vocabulary using AI
           const vocabularyData = await aiService.extractVocabulary(messageText);
@@ -111,6 +114,7 @@ app.post('/webhook', async (req, res) => {
               type: 'text',
               text: '❌ No vocabulary words found in your message. Please try again with a message containing English words.'
             });
+            hasReplied = true;
             continue;
           }
 
@@ -124,29 +128,41 @@ app.post('/webhook', async (req, res) => {
           
           vocabularyText += `\n✅ Vocabulary extraction complete!`;
 
-          // Check message length (LINE limit is 5000 characters)
-          if (vocabularyText.length > 5000) {
-            vocabularyText = vocabularyText.substring(0, 4990) + '\n... (truncated)';
-          }
-
           // Send vocabulary response
           await client.replyMessage(replyToken, {
             type: 'text',
             text: vocabularyText
           });
           
+          hasReplied = true;
           console.log('✅ Vocabulary response sent successfully');
+
+          // Add words to WordBridge silently (after successful reply)
+          try {
+            console.log('🔄 Adding words to WordBridge...');
+            const wordBridgeResult = await wordBridgeService.addWords(vocabularyData.words);
+            
+            if (wordBridgeResult.success) {
+              console.log('✅ Words successfully added to WordBridge');
+            } else {
+              console.log('⚠️ Failed to add words to WordBridge:', wordBridgeResult.error);
+            }
+          } catch (wordBridgeError) {
+            console.error('❌ WordBridge integration error:', wordBridgeError);
+          }
         } catch (error) {
           console.error('❌ Failed to process vocabulary:', error);
           
           // Send error response (only if we haven't sent a reply yet)
-          try {
-            await client.replyMessage(replyToken, {
-              type: 'text',
-              text: '❌ Sorry, something went wrong while processing your message. Please try again later.'
-            });
-          } catch (replyError) {
-            console.error('❌ Failed to send error response:', replyError);
+          if (!hasReplied) {
+            try {
+              await client.replyMessage(replyToken, {
+                type: 'text',
+                text: '❌ Sorry, something went wrong while processing your message. Please try again later.'
+              });
+            } catch (replyError) {
+              console.error('❌ Failed to send error response:', replyError);
+            }
           }
         }
       } else {
