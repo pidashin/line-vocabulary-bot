@@ -103,12 +103,6 @@ app.post('/webhook', async (req, res) => {
         }
 
         try {
-          // Send processing message
-          await client.replyMessage(replyToken, {
-            type: 'text',
-            text: '🤖 Processing your message with AI...'
-          });
-
           // Extract vocabulary using AI
           const vocabularyData = await aiService.extractVocabulary(messageText);
           
@@ -130,6 +124,11 @@ app.post('/webhook', async (req, res) => {
           
           vocabularyText += `\n✅ Vocabulary extraction complete!`;
 
+          // Check message length (LINE limit is 5000 characters)
+          if (vocabularyText.length > 5000) {
+            vocabularyText = vocabularyText.substring(0, 4990) + '\n... (truncated)';
+          }
+
           // Send vocabulary response
           await client.replyMessage(replyToken, {
             type: 'text',
@@ -140,11 +139,15 @@ app.post('/webhook', async (req, res) => {
         } catch (error) {
           console.error('❌ Failed to process vocabulary:', error);
           
-          // Send error response
-          await client.replyMessage(replyToken, {
-            type: 'text',
-            text: '❌ Sorry, something went wrong while processing your message. Please try again later.'
-          });
+          // Send error response (only if we haven't sent a reply yet)
+          try {
+            await client.replyMessage(replyToken, {
+              type: 'text',
+              text: '❌ Sorry, something went wrong while processing your message. Please try again later.'
+            });
+          } catch (replyError) {
+            console.error('❌ Failed to send error response:', replyError);
+          }
         }
       } else {
         console.log(`ℹ️  Ignoring event type: ${event.type}`);
