@@ -55,7 +55,6 @@ class WordBridgeService {
         }
       );
 
-      console.log('✅ WordBridge API call successful');
 
       // Check for GraphQL errors
       if (response.data.errors) {
