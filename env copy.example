@@ -1,0 +1,20 @@
+# LINE Bot Configuration
+LINE_CHANNEL_ACCESS_TOKEN=your_line_channel_access_token_here
+LINE_CHANNEL_SECRET=your_line_channel_secret_here
+
+# AI Service Configuration (OpenAI)
+OPENAI_API_KEY=your_openai_api_key_here
+
+# App API Configuration
+APP_API_BASE_URL=https://your-app-api.com
+APP_API_KEY=your_app_api_key_here
+
+# NAS Deployment Configuration
+NAS_HOST=your-nas-ip-or-hostname
+NAS_USER=your-nas-username
+NAS_PATH=/path/to/your/bot/directory
+
+# Server Configuration
+PORT=3000
+NODE_ENV=development
+
