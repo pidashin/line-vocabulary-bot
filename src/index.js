@@ -5,11 +5,23 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Middleware to capture raw body for signature validation
+app.use('/webhook', express.raw({ type: 'application/json' }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 // LINE Bot SDK configuration
 const config = {
   channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
   channelSecret: process.env.LINE_CHANNEL_SECRET,
 };
+
+// Check if required environment variables are set
+if (!process.env.LINE_CHANNEL_ACCESS_TOKEN || !process.env.LINE_CHANNEL_SECRET) {
+  console.error('❌ Missing required LINE Bot environment variables');
+  console.error('Please set LINE_CHANNEL_ACCESS_TOKEN and LINE_CHANNEL_SECRET in your .env file');
+  process.exit(1);
+}
 
 const client = new line.Client(config);
 
@@ -44,10 +56,20 @@ app.post('/webhook', async (req, res) => {
   try {
     console.log('📨 Received webhook request');
     console.log('Headers:', req.headers);
-    console.log('Body:', JSON.stringify(req.body, null, 2));
 
-    // Verify webhook signature
+    // Check if LINE_CHANNEL_SECRET is configured
+    if (!process.env.LINE_CHANNEL_SECRET) {
+      console.error('❌ LINE_CHANNEL_SECRET not configured');
+      return res.status(500).send('LINE_CHANNEL_SECRET not configured');
+    }
+
+    // Verify webhook signature using raw body
     const signature = req.get('X-Line-Signature');
+    if (!signature) {
+      console.error('❌ No signature header found');
+      return res.status(401).send('No signature header');
+    }
+
     if (!line.validateSignature(req.body, process.env.LINE_CHANNEL_SECRET, signature)) {
       console.error('❌ Invalid signature');
       return res.status(401).send('Unauthorized');
@@ -55,7 +77,11 @@ app.post('/webhook', async (req, res) => {
 
     console.log('✅ Signature verified');
 
-    const events = req.body.events;
+    // Parse the JSON body
+    const body = JSON.parse(req.body.toString());
+    console.log('Body:', JSON.stringify(body, null, 2));
+
+    const events = body.events;
     console.log(`📋 Processing ${events.length} events`);
 
     // Process each event
