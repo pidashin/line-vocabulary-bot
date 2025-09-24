@@ -90,10 +90,16 @@ app.post('/webhook', async (req, res) => {
 
       if (event.type === 'message' && event.message.type === 'text') {
         const { replyToken, message, source } = event;
-        const userId = source.userId;
-        const messageText = message.text;
+        const userId = source?.userId || 'unknown';
+        const messageText = message?.text || 'no text';
 
         console.log(`👤 User ${userId} sent: "${messageText}"`);
+        console.log(`🔑 Reply token: ${replyToken ? 'present' : 'missing'}`);
+
+        if (!replyToken) {
+          console.error('❌ No reply token found, cannot send response');
+          continue;
+        }
 
         // Send a simple echo response
         const responseText = `🤖 Bot received your message: "${messageText}"\n\nThis is a test response from your LINE Vocabulary Bot!`;
