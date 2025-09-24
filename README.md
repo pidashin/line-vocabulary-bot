@@ -1,4 +1,4 @@
-npm i# LINE Vocabulary Bot
+# LINE Vocabulary Bot
 
 A LINE bot that extracts vocabulary words from teacher messages using AI and translates them into English-Traditional Chinese pairs.
 
