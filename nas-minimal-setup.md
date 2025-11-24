@@ -60,8 +60,15 @@ EOF
 ```bash
 # Create .env file with your LINE Bot credentials
 cat > .env << 'EOF'
+# LINE Bot Configuration
 LINE_CHANNEL_ACCESS_TOKEN=your_actual_channel_access_token
 LINE_CHANNEL_SECRET=your_actual_channel_secret
+
+# Image Bot Configuration
+IMG_BOT_CHANNEL_ACCESS_TOKEN=your_actual_img_bot_channel_access_token
+IMG_BOT_CHANNEL_SECRET=your_actual_img_bot_channel_secret
+
+# Server Configuration
 PORT=3000
 NODE_ENV=production
 EOF
@@ -88,6 +95,25 @@ docker-compose ps
 EOF
 
 chmod +x update-bot.sh
+```
+
+### 6. Updating Configuration (if needed)
+
+If you need to update your `.env` file (e.g., adding Image Bot credentials):
+
+```bash
+# Option 1: Edit directly on NAS
+nano .env
+
+# Option 2: Overwrite with new content
+cat > .env << 'EOF'
+LINE_CHANNEL_ACCESS_TOKEN=new_token
+...
+EOF
+
+# After updating .env, restart the container
+docker-compose down
+docker-compose up -d
 ```
 
 ## Deployment Flow
