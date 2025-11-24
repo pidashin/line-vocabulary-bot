@@ -12,11 +12,14 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=4001
+      - IMAGE_STORAGE_PATH=/app/storage/images
     env_file:
       - .env
     volumes:
       # Mount logs directory for persistence
       - ./logs:/app/logs
+      # Mount NAS storage for images
+      - /volume1/docker/data/line-bot-images:/app/storage/images
     networks:
       - bot-network
     healthcheck:

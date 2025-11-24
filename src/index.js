@@ -2,6 +2,7 @@ const express = require('express');
 const line = require('@line/bot-sdk');
 const aiService = require('./services/aiService');
 const wordBridgeService = require('./services/wordBridgeService');
+const imageHandler = require('./handlers/imageHandler');
 require('dotenv').config();
 
 const app = express();
@@ -9,6 +10,7 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware to capture raw body for signature validation
 app.use('/webhook', express.raw({ type: 'application/json' }));
+app.use('/imgsave/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -173,6 +175,36 @@ app.post('/webhook', async (req, res) => {
     res.status(200).send('OK');
   } catch (error) {
     console.error('❌ Webhook error:', error);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+// Image Bot Webhook Endpoint
+app.post('/imgsave/webhook', async (req, res) => {
+  try {
+    console.log('📨 Received image bot webhook request');
+
+    // Verify webhook signature
+    const signature = req.get('X-Line-Signature');
+    if (!signature) {
+      console.error('❌ No signature header found');
+      return res.status(401).send('No signature header');
+    }
+
+    if (!line.validateSignature(req.body, imageHandler.config.channelSecret, signature)) {
+      console.error('❌ Invalid signature');
+      return res.status(401).send('Unauthorized');
+    }
+
+    // Parse the JSON body
+    const body = JSON.parse(req.body.toString());
+    
+    // Process events
+    const results = await Promise.all(body.events.map(imageHandler.handleEvent));
+    
+    res.json(results);
+  } catch (error) {
+    console.error('❌ Image bot webhook error:', error);
     res.status(500).send('Internal Server Error');
   }
 });
