@@ -11,8 +11,12 @@ This setup allows you to deploy the LINE Vocabulary Bot to your NAS using Docker
 ssh your-username@your-nas-ip
 
 # Create minimal directory
-mkdir -p /path/to/your/bot/directory
-cd /path/to/your/bot/directory
+# Create minimal directory
+mkdir -p /volume1/docker/line-vocabulary-bot
+cd /volume1/docker/line-vocabulary-bot
+
+# Create data directory for images
+mkdir -p /volume1/docker/data/line-bot-images
 
 # Create only the necessary files
 ```
@@ -40,6 +44,7 @@ services:
       - .env
     volumes:
       - ./logs:/app/logs
+      - /volume1/docker/data/line-bot-images:/app/storage/images
     networks:
       - bot-network
     healthcheck:
