@@ -7,9 +7,12 @@ A LINE bot that extracts vocabulary words from teacher messages using AI and tra
 - 🤖 **AI-First Parsing**: Uses Hugging Face AI to extract vocabulary words from messages
 - 🌐 **Automatic Translation**: Translates English words to Traditional Chinese (Taiwan)
 - 📱 **LINE Integration**: Full LINE Bot SDK integration with webhook handling
+- 🖼️ **Image Bot**: Receives images, saves them locally with timestamps, and replies with confirmation
 - 🎯 **WordBridge Integration**: Automatically adds extracted vocabulary to WordBridge collection
 
 ## Flow
+
+### Vocabulary Bot Flow
 
 1. **Teacher sends message** → Bot receives webhook
 2. **AI Processing** → Bot sends message text to Hugging Face AI
@@ -17,6 +20,12 @@ A LINE bot that extracts vocabulary words from teacher messages using AI and tra
 4. **Display Results** → Bot shows formatted vocabulary list to user
 5. **WordBridge Integration** → Automatically adds words to WordBridge collection
 6. **Success Feedback** → Bot confirms successful addition to WordBridge
+
+### Image Bot Flow
+
+1. **User sends image** → Bot receives webhook
+2. **Save Image** → Bot saves image to `./temp/` with timestamp filename
+3. **Reply** → Bot replies "圖片已收到！"
 
 ## Installation
 
@@ -46,6 +55,10 @@ Create a `.env` file with the following variables:
 # LINE Bot Configuration
 LINE_CHANNEL_ACCESS_TOKEN=your_line_channel_access_token_here
 LINE_CHANNEL_SECRET=your_line_channel_secret_here
+
+# Image Bot Configuration
+IMG_BOT_CHANNEL_ACCESS_TOKEN=your_img_bot_channel_access_token_here
+IMG_BOT_CHANNEL_SECRET=your_img_bot_channel_secret_here
 
 # AI Service Configuration (Hugging Face)
 HUGGINGFACE_API_KEY=your_huggingface_api_key_here
@@ -89,6 +102,8 @@ The bot will be available at `http://localhost:3000` with the webhook endpoint a
 
 ### Setting up Webhook
 
+#### Vocabulary Bot
+
 1. In LINE Developers Console, set your webhook URL to:
    ```
    https://your-domain.com/webhook
@@ -97,6 +112,17 @@ The bot will be available at `http://localhost:3000` with the webhook endpoint a
 2. Enable "Use webhook" in the Messaging API settings
 
 3. Verify the webhook is working by sending a test message
+
+#### Image Bot
+
+1. In LINE Developers Console (for the Image Bot channel), set your webhook URL to:
+   ```
+   https://your-domain.com/imgsave/webhook
+   ```
+
+2. Enable "Use webhook" in the Messaging API settings
+
+3. Verify the webhook is working by sending an image
 
 ## API Response Format
 
