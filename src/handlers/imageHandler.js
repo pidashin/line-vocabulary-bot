@@ -43,16 +43,29 @@ async function handleEvent(event) {
 
     console.log(`Image saved to ${filepath}`);
 
-    // Reply to user
+    // Analyze image with Gemini
+    const geminiService = require('../services/geminiService');
+    console.log('Analyzing image with Gemini...');
+    const analysisResult = await geminiService.analyzeImage(filepath);
+    console.log('Analysis complete:', analysisResult);
+
+    if (analysisResult.error) {
+        return client.replyMessage(event.replyToken, {
+            type: 'text',
+            text: `無法識別題目: ${analysisResult.error}`,
+        });
+    }
+
+    // Reply to user with the result
     return client.replyMessage(event.replyToken, {
       type: 'text',
-      text: '圖片已收到！',
+      text: JSON.stringify(analysisResult, null, 2),
     });
   } catch (error) {
     console.error('Error handling image:', error);
     return client.replyMessage(event.replyToken, {
       type: 'text',
-      text: '處理圖片時發生錯誤。',
+      text: '處理圖片時發生錯誤: ' + error.message,
     });
   }
 }
