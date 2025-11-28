@@ -45,6 +45,7 @@ async function handleEvent(event) {
 
     // Analyze image with Gemini
     const geminiService = require('../services/geminiService');
+    const ocrStorageService = require('../services/ocrStorageService');
     console.log('Analyzing image with Gemini...');
     const analysisResult = await geminiService.analyzeImage(filepath);
     console.log('Analysis complete:', analysisResult);
@@ -56,10 +57,20 @@ async function handleEvent(event) {
         });
     }
 
+    // Save successful OCR result to NAS
+    try {
+      const userId = event.source?.userId || 'unknown';
+      await ocrStorageService.saveOcrResult(analysisResult, filepath, userId);
+      console.log('✅ OCR result saved to NAS');
+    } catch (storageError) {
+      // Log error but don't fail the response
+      console.error('⚠️ Failed to save OCR result:', storageError);
+    }
+
     // Reply to user with the result
     return client.replyMessage(event.replyToken, {
       type: 'text',
-      text: JSON.stringify(analysisResult, null, 2),
+      text: `✅ 題目已儲存至 NAS\n\n${JSON.stringify(analysisResult, null, 2)}`,
     });
   } catch (error) {
     console.error('Error handling image:', error);

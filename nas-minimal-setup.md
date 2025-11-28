@@ -18,6 +18,9 @@ cd /volume1/docker/line-vocabulary-bot
 # Create data directory for images
 mkdir -p /volume1/docker/data/line-bot-images
 
+# Create data directory for OCR results
+mkdir -p /volume1/docker/data/line-bot-ocr-results
+
 # Create only the necessary files
 ```
 
@@ -45,6 +48,7 @@ services:
     volumes:
       - ./logs:/app/logs
       - /volume1/docker/data/line-bot-images:/app/storage/images
+      - /volume1/docker/data/line-bot-ocr-results:/app/storage/ocr-results
     networks:
       - bot-network
     healthcheck:
@@ -192,6 +196,42 @@ docker-compose ps
 
 # Health check
 curl http://localhost:3000/health
+
+# View OCR results
+cat /volume1/docker/data/line-bot-ocr-results/ocr-results.json | jq .
+
+# Count total OCR results
+cat /volume1/docker/data/line-bot-ocr-results/ocr-results.json | jq 'length'
+
+# Filter by subject (e.g., 數學)
+cat /volume1/docker/data/line-bot-ocr-results/ocr-results.json | jq '.[] | select(.subject == "數學")'
+
+# Backup OCR results
+cp /volume1/docker/data/line-bot-ocr-results/ocr-results.json ~/ocr-backup-$(date +%Y%m%d).json
+```
+
+## OCR Results Storage
+
+The bot now saves all successful OCR results to `/volume1/docker/data/line-bot-ocr-results/ocr-results.json`.
+
+### Data Structure
+
+Each OCR result includes:
+- `id`: Unique timestamp-based identifier
+- `timestamp`: ISO 8601 timestamp
+- `subject`: Subject classification (國語, 數學, 自然, 社會, 英文)
+- `userId`: LINE user ID
+- `imagePath`: Path to original image
+- `ocrData`: Complete Gemini OCR result
+- `status`: "success"
+
+### Future Migration
+
+The JSON structure is designed for easy migration to a database:
+- Each result has a unique ID
+- Timestamps are in ISO format
+- Structure maps directly to database tables
+- When ready, migrate to SQLite or MongoDB for better performance
 ```
 
 ## LINE Bot Webhook Setup
