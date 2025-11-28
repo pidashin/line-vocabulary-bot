@@ -21,7 +21,7 @@ services:
       # Mount NAS storage for images
       - /volume1/docker/data/line-bot-images:/app/storage/images
       # Mount NAS storage for OCR results
-      - /volume1/docker/data/line-bot-ocr-results:/app/storage/ocr-results
+      - /volume1/docker/data:/app/storage/ocr-results
     networks:
       - bot-network
     healthcheck:

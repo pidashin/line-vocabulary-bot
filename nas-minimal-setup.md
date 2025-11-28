@@ -15,11 +15,10 @@ ssh your-username@your-nas-ip
 mkdir -p /volume1/docker/line-vocabulary-bot
 cd /volume1/docker/line-vocabulary-bot
 
-# Create data directory for images
+# Create data directory for images and OCR results
 mkdir -p /volume1/docker/data/line-bot-images
 
-# Create data directory for OCR results
-mkdir -p /volume1/docker/data/line-bot-ocr-results
+# OCR results will be stored in /volume1/docker/data/ocr-results.json
 
 # Create only the necessary files
 ```
@@ -48,7 +47,7 @@ services:
     volumes:
       - ./logs:/app/logs
       - /volume1/docker/data/line-bot-images:/app/storage/images
-      - /volume1/docker/data/line-bot-ocr-results:/app/storage/ocr-results
+      - /volume1/docker/data:/app/storage/ocr-results
     networks:
       - bot-network
     healthcheck:
@@ -198,21 +197,21 @@ docker-compose ps
 curl http://localhost:3000/health
 
 # View OCR results
-cat /volume1/docker/data/line-bot-ocr-results/ocr-results.json | jq .
+cat /volume1/docker/data/ocr-results.json | jq .
 
 # Count total OCR results
-cat /volume1/docker/data/line-bot-ocr-results/ocr-results.json | jq 'length'
+cat /volume1/docker/data/ocr-results.json | jq 'length'
 
 # Filter by subject (e.g., 數學)
-cat /volume1/docker/data/line-bot-ocr-results/ocr-results.json | jq '.[] | select(.subject == "數學")'
+cat /volume1/docker/data/ocr-results.json | jq '.[] | select(.subject == "數學")'
 
 # Backup OCR results
-cp /volume1/docker/data/line-bot-ocr-results/ocr-results.json ~/ocr-backup-$(date +%Y%m%d).json
+cp /volume1/docker/data/ocr-results.json ~/ocr-backup-$(date +%Y%m%d).json
 ```
 
 ## OCR Results Storage
 
-The bot now saves all successful OCR results to `/volume1/docker/data/line-bot-ocr-results/ocr-results.json`.
+The bot now saves all successful OCR results to `/volume1/docker/data/ocr-results.json`.
 
 ### Data Structure
 
