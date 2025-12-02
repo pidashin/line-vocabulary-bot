@@ -23,9 +23,9 @@ async function analyzeImage(imagePath) {
       
       如果是有效的題目圖片，請輸出一個 JSON 物件，格式如下：
       {
-        "subject": "科目分類 (國語, 數學, 自然, 社會, 英文)",
         "questions": [
           {
+            "subject": "科目分類 (國語, 數學, 自然, 社會, 英文)",
             "stem": "題幹文字",
             "options": ["選項1", "選項2", ...], // 如果有的話
             "blanks": ["空格1答案", ...], // 如果是填空題，且能推斷或識別空格位置

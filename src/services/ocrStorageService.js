@@ -72,32 +72,33 @@ async function saveOcrResult(ocrData, imagePath, userId) {
       return null;
     }
 
-    // Generate unique ID using timestamp
-    const id = Date.now().toString();
-    const timestamp = new Date().toISOString();
-
-    // Create result object
-    const result = {
-      id,
-      timestamp,
-      subject: ocrData.subject || 'unknown',
-      userId: userId || 'unknown',
-      imagePath,
-      ocrData,
-      status: 'success'
-    };
+    // Don't save if no questions found
+    if (!ocrData.questions || ocrData.questions.length === 0) {
+      console.log('⚠️ Skipping save - No questions found in OCR data');
+      return null;
+    }
 
     // Read existing results
     const results = readResults();
 
-    // Append new result
-    results.push(result);
+    // Each question already has subject included from Gemini
+    const newQuestions = ocrData.questions.map(question => ({
+      subject: question.subject || 'unknown',
+      stem: question.stem,
+      options: question.options || [],
+      blanks: question.blanks || [],
+      imageDescription: question.imageDescription || question.image_description || ''
+    }));
+
+    // Append new questions to results
+    results.push(...newQuestions);
 
     // Write back to file
     writeResults(results);
 
-    console.log(`✅ Saved OCR result: ${id} (${result.subject})`);
-    return result;
+    const subjects = [...new Set(newQuestions.map(q => q.subject))].join(', ');
+    console.log(`✅ Saved ${newQuestions.length} question(s) (${subjects})`);
+    return newQuestions;
   } catch (error) {
     console.error('❌ Error saving OCR result:', error);
     throw error;
