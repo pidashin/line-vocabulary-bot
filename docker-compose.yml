@@ -13,6 +13,7 @@ services:
       - NODE_ENV=production
       - PORT=4001
       - IMAGE_STORAGE_PATH=/app/storage/images
+      - OCR_STORAGE_PATH=/app/storage/ocr-results.json
     env_file:
       - .env
     volumes:
@@ -21,7 +22,7 @@ services:
       # Mount NAS storage for images
       - /volume1/docker/data/line-bot-images:/app/storage/images
       # Mount NAS storage for OCR results
-      - /volume1/docker/data:/app/storage/ocr-results
+      - /volume1/docker/data/ocr-results.json:/app/storage/ocr-results.json
     networks:
       - bot-network
     healthcheck:

@@ -1,9 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 
-// Storage path from environment or default
-const STORAGE_PATH = process.env.OCR_STORAGE_PATH || path.join(__dirname, '../../storage/ocr-results');
-const STORAGE_FILE = path.join(STORAGE_PATH, 'ocr-results.json');
+// Storage file path from environment or default
+const STORAGE_FILE = process.env.OCR_STORAGE_PATH || path.join(__dirname, '../../storage/ocr-results.json');
+const STORAGE_DIR = path.dirname(STORAGE_FILE);
 
 /**
  * Initialize storage directory and file if they don't exist
@@ -11,9 +11,9 @@ const STORAGE_FILE = path.join(STORAGE_PATH, 'ocr-results.json');
 function initializeStorage() {
   try {
     // Create directory if it doesn't exist
-    if (!fs.existsSync(STORAGE_PATH)) {
-      fs.mkdirSync(STORAGE_PATH, { recursive: true });
-      console.log(`✅ Created OCR storage directory: ${STORAGE_PATH}`);
+    if (!fs.existsSync(STORAGE_DIR)) {
+      fs.mkdirSync(STORAGE_DIR, { recursive: true });
+      console.log(`✅ Created OCR storage directory: ${STORAGE_DIR}`);
     }
 
     // Create empty array file if it doesn't exist
