@@ -49,10 +49,8 @@ function readResults() {
 function writeResults(results) {
   try {
     initializeStorage();
-    // Write to temporary file first, then rename (atomic operation)
-    const tempFile = `${STORAGE_FILE}.tmp`;
-    fs.writeFileSync(tempFile, JSON.stringify(results, null, 2), 'utf8');
-    fs.renameSync(tempFile, STORAGE_FILE);
+    // Write directly to file (no temp file due to Docker file-level mount limitations)
+    fs.writeFileSync(STORAGE_FILE, JSON.stringify(results, null, 2), 'utf8');
   } catch (error) {
     console.error('❌ Error writing OCR results:', error);
     throw error;
