@@ -58,7 +58,7 @@ echo "docker-compose logs -f line-vocabulary-bot"
 echo ""
 
 echo -e "${YELLOW}📋 After deployment:${NC}"
-echo "1. Set your LINE Bot webhook URL to: http://$NAS_HOST:3000/webhook"
+echo "1. Set your LINE Bot webhook URL to: http://$NAS_HOST:4001/webhook"
 echo "2. Test by sending a message to your LINE Bot"
 echo "3. Check logs: docker-compose logs -f line-vocabulary-bot"
 echo ""

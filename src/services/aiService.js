@@ -28,7 +28,8 @@ class AIService {
           headers: {
             'Authorization': `Bearer ${this.huggingFaceApiKey}`,
             'Content-Type': 'application/json'
-          }
+          },
+          timeout: 20000 // 20 second timeout
         }
       );
 
@@ -185,6 +186,7 @@ Message: "${messageText}"`;
   // Fallback method for testing without AI
   async extractVocabularyFallback(messageText) {
     console.log('Using fallback vocabulary extraction');
+    console.log('Message length:', messageText.length);
     
     // Look for vocabulary list patterns in the message
     const vocabularyPatterns = [
@@ -225,6 +227,7 @@ Message: "${messageText}"`;
       }))
     };
 
+    console.log(`Fallback found ${vocabularyData.words.length} words`);
     return vocabularyData;
   }
 }
