@@ -1,9 +1,9 @@
+require('dotenv').config();
 const express = require('express');
 const line = require('@line/bot-sdk');
 const aiService = require('./services/aiService');
 const wordBridgeService = require('./services/wordBridgeService');
 const imageHandler = require('./handlers/imageHandler');
-require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -28,10 +28,6 @@ if (!process.env.LINE_CHANNEL_ACCESS_TOKEN || !process.env.LINE_CHANNEL_SECRET) 
 }
 
 const client = new line.Client(config);
-
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
