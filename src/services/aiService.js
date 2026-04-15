@@ -3,8 +3,8 @@ const axios = require('axios');
 class AIService {
   constructor() {
     this.huggingFaceApiKey = process.env.HUGGINGFACE_API_KEY;
-    this.provider = 'hyperbolic'; // Using hyperbolic provider as suggested
-    this.model = 'Qwen/Qwen3-Next-80B-A3B-Instruct';
+    this.provider = process.env.AI_PROVIDER || ''; // Allow router to pick the provider by default
+    this.model = process.env.AI_MODEL || 'meta-llama/Llama-3.1-8B-Instruct'; // Budget-friendly fallback model
     this.baseURL = 'https://router.huggingface.co/v1';
   }
 
@@ -12,11 +12,13 @@ class AIService {
     try {
       const prompt = this.createPrompt(messageText);
       
+      const modelIdentifier = this.provider ? `${this.model}:${this.provider}` : this.model;
+
       // Using axios with the router endpoint
       const response = await axios.post(
         `${this.baseURL}/chat/completions`,
         {
-          model: `${this.model}:${this.provider}`,
+          model: modelIdentifier,
           messages: [
             {
               role: "user",
@@ -145,13 +147,14 @@ Message: "${messageText}"`;
     return true;
   }
 
-  // Test Hugging Face API connection
   async testConnection() {
     try {
+      const modelIdentifier = this.provider ? `${this.model}:${this.provider}` : this.model;
+      
       const response = await axios.post(
         `${this.baseURL}/chat/completions`,
         {
-          model: `${this.model}:${this.provider}`,
+          model: modelIdentifier,
           messages: [
             {
               role: "user",
