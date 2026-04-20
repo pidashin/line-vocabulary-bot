@@ -3,67 +3,70 @@ const axios = require('axios');
 class AIService {
   constructor() {
     this.huggingFaceApiKey = process.env.HUGGINGFACE_API_KEY;
-    this.provider = process.env.AI_PROVIDER || ''; // Allow router to pick the provider by default
-    this.model = process.env.AI_MODEL || 'meta-llama/Llama-3.1-8B-Instruct'; // Budget-friendly fallback model
+    this.provider = process.env.AI_PROVIDER || ''; 
+    this.model = process.env.AI_MODEL || 'meta-llama/Llama-3.1-8B-Instruct'; 
     this.baseURL = 'https://router.huggingface.co/v1';
   }
 
   async extractVocabulary(messageText) {
-    try {
-      const prompt = this.createPrompt(messageText);
-      
-      const modelIdentifier = this.provider ? `${this.model}:${this.provider}` : this.model;
+    // Try Hugging Face models in sequence for high reliability
+    const hfModels = [
+      this.model, // User's preferred model or default Llama-3.1-8B-Instruct
+      'meta-llama/Llama-3.2-1B-Instruct',
+      'Qwen/Qwen2.5-7B-Instruct',
+      'mistralai/Mistral-7B-Instruct-v0.3'
+    ];
 
-      // Using axios with the router endpoint
-      const response = await axios.post(
-        `${this.baseURL}/chat/completions`,
-        {
-          model: modelIdentifier,
-          messages: [
-            {
-              role: "user",
-              content: prompt
-            }
-          ]
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${this.huggingFaceApiKey}`,
-            'Content-Type': 'application/json'
+    // Filter out duplicates and nulls
+    const uniqueModels = [...new Set(hfModels.filter(m => m))];
+
+    for (const hfModel of uniqueModels) {
+      try {
+        console.log(`Trying Hugging Face model: ${hfModel}...`);
+        const prompt = this.createPrompt(messageText);
+        const modelIdentifier = this.provider ? `${hfModel}:${this.provider}` : hfModel;
+
+        const response = await axios.post(
+          `${this.baseURL}/chat/completions`,
+          {
+            model: modelIdentifier,
+            messages: [
+              {
+                role: "user",
+                content: prompt
+              }
+            ]
           },
-          timeout: 20000 // 20 second timeout
+          {
+            headers: {
+              'Authorization': `Bearer ${this.huggingFaceApiKey}`,
+              'Content-Type': 'application/json'
+            },
+            timeout: 15000 
+          }
+        );
+
+        const aiResponse = response.data.choices[0]?.message?.content;
+        
+        if (aiResponse) {
+          const vocabularyData = this.extractJsonFromResponse(aiResponse);
+          if (this.validateVocabularyData(vocabularyData)) {
+            console.log(`✅ Success with ${hfModel}`);
+            return vocabularyData;
+          }
         }
-      );
-
-      // Extract the response content
-      const aiResponse = response.data.choices[0]?.message?.content;
-      console.log('AI Response:', aiResponse);
-
-      if (!aiResponse) {
-        throw new Error('No response content from AI');
+      } catch (error) {
+        console.error(`❌ Error with ${hfModel}:`, error.message);
+        if (error.response && error.response.data) {
+          console.error('API Error details:', JSON.stringify(error.response.data.error || error.response.data));
+        }
+        // Continue to the next model in the list
       }
-
-      // Try to extract JSON from the response
-      const vocabularyData = this.extractJsonFromResponse(aiResponse);
-      
-      // Validate the response structure
-      if (!this.validateVocabularyData(vocabularyData)) {
-        throw new Error('Invalid vocabulary data structure from AI');
-      }
-
-      return vocabularyData;
-
-    } catch (error) {
-      console.error('AI Service Error:', error);
-      
-      if (error.response) {
-        console.error('AI API Error Response:', error.response.data);
-      }
-      
-      // Fallback to simple extraction if AI fails
-      console.log('🔄 Falling back to simple vocabulary extraction');
-      return await this.extractVocabularyFallback(messageText);
     }
+
+    // Fallback to simple extraction if all AI models fail
+    console.log('🔄 All AI models failed. Falling back to simple vocabulary extraction.');
+    return await this.extractVocabularyFallback(messageText);
   }
 
   createPrompt(messageText) {
@@ -138,7 +141,6 @@ Message: "${messageText}"`;
         return false;
       }
 
-      // Basic validation for English and Chinese characters
       if (word.enUS.trim().length === 0 || word.zhTW.trim().length === 0) {
         return false;
       }
@@ -166,12 +168,14 @@ Message: "${messageText}"`;
           headers: {
             'Authorization': `Bearer ${this.huggingFaceApiKey}`,
             'Content-Type': 'application/json'
-          }
+          },
+          timeout: 10000
         }
       );
 
       return {
         success: true,
+        model: modelIdentifier,
         data: response.data
       };
 
@@ -181,15 +185,14 @@ Message: "${messageText}"`;
       return {
         success: false,
         error: error.message,
-        status: error.response?.status
+        status: error.response?.status,
+        data: error.response?.data
       };
     }
   }
 
-  // Fallback method for testing without AI
   async extractVocabularyFallback(messageText) {
     console.log('Using fallback vocabulary extraction');
-    console.log('Message length:', messageText.length);
     
     // Look for vocabulary list patterns in the message
     const vocabularyPatterns = [
@@ -201,7 +204,6 @@ Message: "${messageText}"`;
 
     let vocabularyWords = [];
 
-    // Try to extract from vocabulary list patterns
     for (const pattern of vocabularyPatterns) {
       const match = messageText.match(pattern);
       if (match) {
@@ -210,30 +212,27 @@ Message: "${messageText}"`;
           .split(/[,，、\s]+/)
           .map(word => word.trim())
           .filter(word => word.length > 0 && /^[a-zA-Z]+$/.test(word))
-          .slice(0, 20); // Limit to 20 words
+          .slice(0, 20); 
         break;
       }
     }
 
-    // If no vocabulary list found, extract English words from the message
     if (vocabularyWords.length === 0) {
       vocabularyWords = messageText
         .match(/[a-zA-Z]{3,}/g) || []
         .filter(word => !['the', 'and', 'are', 'for', 'with', 'this', 'that', 'they', 'have', 'been', 'from', 'will', 'your', 'said', 'each', 'which', 'their', 'time', 'would', 'there', 'could', 'other', 'after', 'first', 'well', 'also', 'new', 'want', 'because', 'any', 'these', 'give', 'day', 'may', 'say', 'use', 'her', 'many', 'some', 'very', 'when', 'much', 'then', 'them', 'can', 'only', 'think', 'over', 'back', 'where', 'before', 'move', 'right', 'boy', 'old', 'too', 'same', 'she', 'all', 'up', 'word', 'how', 'an', 'do', 'if', 'about', 'out', 'so', 'would', 'make', 'like', 'into', 'him', 'has', 'two', 'more', 'go', 'no', 'way', 'my', 'than', 'water', 'call', 'who', 'oil', 'its', 'now', 'find', 'long', 'down', 'did', 'get', 'come', 'made', 'part'].includes(word.toLowerCase()))
-        .slice(0, 10); // Limit to 10 words
+        .slice(0, 10); 
     }
 
     const vocabularyData = {
       words: vocabularyWords.map(word => ({
         enUS: word.toLowerCase(),
-        zhTW: `[${word}]` // Placeholder translation
+        zhTW: `[${word}]` 
       }))
     };
 
-    console.log(`Fallback found ${vocabularyData.words.length} words`);
     return vocabularyData;
   }
 }
 
 module.exports = new AIService();
-
