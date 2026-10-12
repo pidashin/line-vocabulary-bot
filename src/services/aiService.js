@@ -1,68 +1,44 @@
-const axios = require('axios');
+const { GoogleGenAI } = require('@google/genai');
 
 class AIService {
   constructor() {
-    this.huggingFaceApiKey = process.env.HUGGINGFACE_API_KEY;
-    this.provider = process.env.AI_PROVIDER || ''; 
-    this.model = process.env.AI_MODEL || 'meta-llama/Llama-3.1-8B-Instruct'; 
-    this.baseURL = 'https://router.huggingface.co/v1';
+    // Free-tier models, tried in order (3.8-flash is free too but takes ~30s)
+    this.geminiModels = [...new Set([
+      process.env.GEMINI_TEXT_MODEL || 'gemini-3.5-flash-lite',
+      'gemini-2.5-flash'
+    ])];
+    this.gemini = process.env.GEMINI_API_KEY
+      ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
+      : null;
+  }
+
+  async extractVocabularyWithGemini(messageText) {
+    if (!this.gemini) return null;
+
+    for (const model of this.geminiModels) {
+      try {
+        console.log(`Trying Gemini model: ${model}...`);
+        const response = await this.gemini.models.generateContent({
+          model,
+          contents: this.createPrompt(messageText),
+          config: { responseMimeType: 'application/json' }
+        });
+
+        const vocabularyData = this.extractJsonFromResponse(response.text || '');
+        if (this.validateVocabularyData(vocabularyData)) {
+          console.log(`✅ Success with Gemini ${model}`);
+          return vocabularyData;
+        }
+      } catch (error) {
+        console.error(`❌ Error with Gemini ${model}:`, error.message);
+      }
+    }
+    return null;
   }
 
   async extractVocabulary(messageText) {
-    // Try Hugging Face models in sequence for high reliability
-    const hfModels = [
-      this.model, // User's preferred model or default Llama-3.1-8B-Instruct
-      'meta-llama/Llama-3.2-1B-Instruct',
-      'Qwen/Qwen2.5-7B-Instruct',
-      'mistralai/Mistral-7B-Instruct-v0.3'
-    ];
-
-    // Filter out duplicates and nulls
-    const uniqueModels = [...new Set(hfModels.filter(m => m))];
-
-    for (const hfModel of uniqueModels) {
-      try {
-        console.log(`Trying Hugging Face model: ${hfModel}...`);
-        const prompt = this.createPrompt(messageText);
-        const modelIdentifier = this.provider ? `${hfModel}:${this.provider}` : hfModel;
-
-        const response = await axios.post(
-          `${this.baseURL}/chat/completions`,
-          {
-            model: modelIdentifier,
-            messages: [
-              {
-                role: "user",
-                content: prompt
-              }
-            ]
-          },
-          {
-            headers: {
-              'Authorization': `Bearer ${this.huggingFaceApiKey}`,
-              'Content-Type': 'application/json'
-            },
-            timeout: 15000 
-          }
-        );
-
-        const aiResponse = response.data.choices[0]?.message?.content;
-        
-        if (aiResponse) {
-          const vocabularyData = this.extractJsonFromResponse(aiResponse);
-          if (this.validateVocabularyData(vocabularyData)) {
-            console.log(`✅ Success with ${hfModel}`);
-            return vocabularyData;
-          }
-        }
-      } catch (error) {
-        console.error(`❌ Error with ${hfModel}:`, error.message);
-        if (error.response && error.response.data) {
-          console.error('API Error details:', JSON.stringify(error.response.data.error || error.response.data));
-        }
-        // Continue to the next model in the list
-      }
-    }
+    const geminiResult = await this.extractVocabularyWithGemini(messageText);
+    if (geminiResult) return geminiResult;
 
     // Fallback to simple extraction if all AI models fail
     console.log('🔄 All AI models failed. Falling back to simple vocabulary extraction.');
@@ -150,44 +126,20 @@ Message: "${messageText}"`;
   }
 
   async testConnection() {
+    if (!this.gemini) {
+      return { success: false, error: 'GEMINI_API_KEY is not set' };
+    }
+
     try {
-      const modelIdentifier = this.provider ? `${this.model}:${this.provider}` : this.model;
-      
-      const response = await axios.post(
-        `${this.baseURL}/chat/completions`,
-        {
-          model: modelIdentifier,
-          messages: [
-            {
-              role: "user",
-              content: "Hello, this is a test."
-            }
-          ]
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${this.huggingFaceApiKey}`,
-            'Content-Type': 'application/json'
-          },
-          timeout: 10000
-        }
-      );
-
-      return {
-        success: true,
-        model: modelIdentifier,
-        data: response.data
-      };
-
+      const model = this.geminiModels[0];
+      const response = await this.gemini.models.generateContent({
+        model,
+        contents: 'Hello, this is a test.'
+      });
+      return { success: true, model, data: response.text };
     } catch (error) {
-      console.error('Hugging Face API Connection Test Failed:', error);
-      
-      return {
-        success: false,
-        error: error.message,
-        status: error.response?.status,
-        data: error.response?.data
-      };
+      console.error('Gemini API Connection Test Failed:', error);
+      return { success: false, error: error.message, status: error.status };
     }
   }
 
@@ -218,8 +170,7 @@ Message: "${messageText}"`;
     }
 
     if (vocabularyWords.length === 0) {
-      vocabularyWords = messageText
-        .match(/[a-zA-Z]{3,}/g) || []
+      vocabularyWords = (messageText.match(/[a-zA-Z]{3,}/g) || [])
         .filter(word => !['the', 'and', 'are', 'for', 'with', 'this', 'that', 'they', 'have', 'been', 'from', 'will', 'your', 'said', 'each', 'which', 'their', 'time', 'would', 'there', 'could', 'other', 'after', 'first', 'well', 'also', 'new', 'want', 'because', 'any', 'these', 'give', 'day', 'may', 'say', 'use', 'her', 'many', 'some', 'very', 'when', 'much', 'then', 'them', 'can', 'only', 'think', 'over', 'back', 'where', 'before', 'move', 'right', 'boy', 'old', 'too', 'same', 'she', 'all', 'up', 'word', 'how', 'an', 'do', 'if', 'about', 'out', 'so', 'would', 'make', 'like', 'into', 'him', 'has', 'two', 'more', 'go', 'no', 'way', 'my', 'than', 'water', 'call', 'who', 'oil', 'its', 'now', 'find', 'long', 'down', 'did', 'get', 'come', 'made', 'part'].includes(word.toLowerCase()))
         .slice(0, 10); 
     }

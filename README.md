@@ -4,7 +4,7 @@ A LINE bot that extracts vocabulary words from teacher messages using AI and tra
 
 ## Features
 
-- 🤖 **AI-First Parsing**: Uses Hugging Face AI to extract vocabulary words from messages
+- 🤖 **AI-First Parsing**: Uses Google Gemini (free-tier models) to extract vocabulary words from messages
 - 🌐 **Automatic Translation**: Translates English words to Traditional Chinese (Taiwan)
 - 📱 **LINE Integration**: Full LINE Bot SDK integration with webhook handling
 - 🖼️ **Image Bot**: Receives images, saves them locally with timestamps, and replies with confirmation
@@ -15,7 +15,7 @@ A LINE bot that extracts vocabulary words from teacher messages using AI and tra
 ### Vocabulary Bot Flow
 
 1. **Teacher sends message** → Bot receives webhook
-2. **AI Processing** → Bot sends message text to Hugging Face AI
+2. **AI Processing** → Bot sends message text to Gemini
 3. **Vocabulary Extraction** → AI returns structured JSON with word pairs
 4. **Display Results** → Bot shows formatted vocabulary list to user
 5. **WordBridge Integration** → Automatically adds words to WordBridge collection
@@ -60,8 +60,11 @@ LINE_CHANNEL_SECRET=your_line_channel_secret_here
 IMG_BOT_CHANNEL_ACCESS_TOKEN=your_img_bot_channel_access_token_here
 IMG_BOT_CHANNEL_SECRET=your_img_bot_channel_secret_here
 
-# AI Service Configuration (Hugging Face)
-HUGGINGFACE_API_KEY=your_huggingface_api_key_here
+# AI Service Configuration (Google Gemini)
+GEMINI_API_KEY=your_gemini_api_key_here
+# Optional overrides (free-tier models)
+# GEMINI_TEXT_MODEL=gemini-3.5-flash-lite
+# GEMINI_MODEL=gemini-2.5-flash
 
 # WordBridge API Configuration
 WORDBRIDGE_API_URL=https://pidashinnas.myds.me/projects/wordbridge/api/graphql
@@ -78,11 +81,10 @@ NODE_ENV=development
 3. Choose "Messaging API" as the channel type
 4. Get your Channel Access Token and Channel Secret from the Basic settings
 
-### Getting Hugging Face API Key
+### Getting a Gemini API Key
 
-1. Go to [Hugging Face](https://huggingface.co/)
-2. Create an account and go to Settings > Access Tokens
-3. Create a new token with read access
+1. Go to [Google AI Studio](https://aistudio.google.com/apikey)
+2. Create an API key (the free tier is enough; the bot only uses free-tier models)
 
 ## Usage
 
@@ -160,7 +162,7 @@ WORDBRIDGE_API_URL=https://pidashinnas.myds.me/projects/wordbridge/api/graphql
 
 The bot includes fallback mechanisms for testing:
 
-- If Hugging Face API is not configured, it uses a simple word extraction fallback
+- If the Gemini API is not configured or fails, it uses a simple word extraction fallback
 - If WordBridge API is not configured, it operates in testing mode with mock responses
 - All services include comprehensive error handling
 
@@ -172,7 +174,7 @@ src/
 │   ├── lineBotHandler.js    # Main bot logic and event handling
 │   └── webhookHandler.js    # LINE webhook processing
 ├── services/
-│   ├── aiService.js         # Hugging Face AI integration for vocabulary extraction
+│   ├── aiService.js         # Gemini AI integration for vocabulary extraction
 │   └── wordBridgeService.js # WordBridge GraphQL API integration
 ├── utils/
 │   └── messageFormatter.js  # LINE message formatting utilities
